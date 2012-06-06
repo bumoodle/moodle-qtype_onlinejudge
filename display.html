@@ -1,0 +1,20 @@
+<div class="qtext">
+  <?php echo $questiontext; ?>
+</div>
+
+<hr/>
+
+<div class="ablock clearfix">
+	<p>
+		<? echo get_string('uploaddesign', 'qtype_vhdl'); ?>
+	</p>
+	<div class="answer">
+			<?php echo $fileupload; ?>
+	</div>
+
+</div>
+
+<div class="clearfix">
+    <?php $this->print_question_submit_buttons($question, $state, $cmoptions, $options); ?>
+    <br />
+</div>
