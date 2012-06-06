@@ -8,8 +8,8 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
-$plugin->version  = 2010090501;
+$plugin->component = 'qtype_vhdl';
+$plugin->version  = 2010090505;
 $plugin->requires = 2010090501;
 
 

@@ -23,7 +23,7 @@ require_once("$CFG->dirroot/question/type/vhdl/RemoteHDLSimulation.class.php");
  * @package questionbank
  * @subpackage questiontypes
  */
-class question_vhdl_qtype extends default_questiontype 
+class qtype_vhdl extends question_type 
 {
 
 	/**
@@ -35,7 +35,7 @@ class question_vhdl_qtype extends default_questiontype
     }
     
     /**
-     * Each of the following question fields are stored in the database, and correspond to instructor preferences. 
+     * Specifies the database table and columns used to store the question options.
      */
 	function extra_question_fields() 
     {
@@ -48,32 +48,31 @@ class question_vhdl_qtype extends default_questiontype
 	function questionid_column_name() 
 	{	
 		return 'question';
-	}
-
-	
-    /**
-    * Loads the question type specific options for the question.
-    */
-    function get_question_options(&$question) 
-    {
-        global $DB, $OUTPUT;
-        
-        // Get additional information from database
-        // and attach it to the question object
-        if (!$question->options = $DB->get_record('question_vhdl', array('question' => $question->id))) 
-        {
-            echo $OUTPUT->notification('Error: Missing question options!');
-            return false;
-        }
-        // Load the answers
-        if (!$question->options->answers = $DB->get_records('question_vhdl', array('question' =>  $question->id), 'id ASC')) 
-        {
-           echo $OUTPUT->notification('Error: Missing question answers for vhdl question ' . $question->id . '!');
-           return false;
-        }
-
-        return true;
     }
+
+    /**
+     * Indicates which "file areas" this question uses for its user responsese.
+     */
+    public function response_file_areas() 
+    {
+        //indicate that this question only expects files in its answers
+        return array('answer');
+    }
+
+    public function get_question_options($question) {
+        global $DB;
+        $question->options = $DB->get_record('question_vhdl', array('question' => $question->id), '*', MUST_EXIST);
+        parent::get_question_options($question);
+    }
+
+    public function save_question_options($formdata) 
+    {
+        $draftitemid = file_get_submitted_draft_itemid('testbench');
+        file_save_draft_area_files($formdata->testbench, $formdata->context->id, 'qtype_vhdl', 'testbench', $draftitemid, $this->fileoptions);
+        parent::save_question_options($formdata);
+    }
+
+ 
 
     
     /**
@@ -85,7 +84,6 @@ class question_vhdl_qtype extends default_questiontype
         $DB->delete_records('question_vhdl', array('question' => $questionid));
 
         //TODO: Consider deleting the submitted testbench along with the file.
-        //(Without this, it remains in the "recent files" in the file manager, as per standard moodle behavior.)
         
         parent::delete_question($questionid, $contextid);
     }
@@ -176,30 +174,6 @@ class question_vhdl_qtype extends default_questiontype
         include("$CFG->dirroot/question/type/vhdl/display.html");
     }
     
-    /**
-     * Converts from the database shorthand for a language to an array of valid file extensions
-     * for that language (as determined by ISIM). 
-     */
-    private static function elaborate_types($types)
-    {
-    	switch($types)
-    	{
-		case 'fsm':
-				return array('fsm');
-    		case 'sch':
-				return array('sch', 'sym');
-    		case 'vhdl':
-				return array('vhd', 'vhdl');
-			case 'verilog':
-				return array('v');
-			case 'true':
-				return array('vhd', 'vhdl', 'v');
-			case 'all':
-			default:
-				return array('sch', 'vhd', 'vhdl', 'v');	
-    	
-    	}
-    } 
 
     /**
      * 
@@ -289,21 +263,33 @@ class question_vhdl_qtype extends default_questiontype
      * BEGIN UNMODIFIED MOODLE CORE CODE
      */
     
-    function move_files($questionid, $oldcontextid, $newcontextid) 
-    {
+    public function move_files($questionid, $oldcontextid, $newcontextid) {
         parent::move_files($questionid, $oldcontextid, $newcontextid);
-        $this->move_files_in_answers($questionid, $oldcontextid, $newcontextid);
+        $fs = get_file_storage();
+        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, 'qtype_vhdl', 'testbench', $questionid);
     }
-    
-    protected function delete_files($questionid, $contextid) 
-    {
+
+    protected function delete_files($questionid, $contextid) {
         parent::delete_files($questionid, $contextid);
-        $this->delete_files_in_answers($questionid, $contextid);
+        $fs = get_file_storage();
+        $fs->delete_area_files($contextid, 'qtype_vhdl', 'testbench', $questionid);
     }
+
+
+    
 
     function check_file_access($question, $state, $options, $contextid, $component, $filearea, $args) 
     {
-        if ($component == 'question' && $filearea == 'answerfeedback') 
+
+
+
+        if ($component == 'question' && $filearea == 'response_answer') 
+        {
+            die('delegated yes');
+            return true;
+        }
+
+        elseif ($component == 'question' && $filearea == 'answerfeedback') 
         {
 
             $answerid = reset($args); // itemid is answer id.
@@ -326,41 +312,5 @@ class question_vhdl_qtype extends default_questiontype
         }
     }
    
-   
-
-    
-
-
-    /**
-     * Runs all the code required to set up and save an essay question for testing purposes.
-     * Alternate DB table prefix may be used to facilitate data deletion.
-     */
-    function generate_test($name, $courseid = null) 
-    {
-        global $DB;
-        
-        list($form, $question) = parent::generate_test($name, $courseid);
-        $question->category = $form->category;
-
-        $form->questiontext = "This question is really stupid";
-        $form->penalty = 1;
-        $form->defaultgrade = 1;
-        $form->correctanswer = 0;
-        $form->feedbacktrue = 'Can you justify such a hasty judgment?';
-        $form->feedbackfalse = 'Wisdom has spoken!';
-
-        if ($courseid) 
-        {
-            $course = $DB->get_record('course', array('id' => $courseid));
-        }
-
-        return $this->save_question($question, $form);
-
-    }
 }
-//// END OF CLASS ////
 
-//////////////////////////////////////////////////////////////////////////
-//// INITIATION - Without this line the question type is not in use... ///
-//////////////////////////////////////////////////////////////////////////
-question_register_questiontype(new question_vhdl_qtype());

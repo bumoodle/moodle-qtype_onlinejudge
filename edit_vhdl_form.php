@@ -37,7 +37,7 @@ require_once($CFG->dirroot.'/question/type/edit_question_form.php');
 /**
  * vhdl editing form definition.
  */
-class question_edit_vhdl_form extends question_edit_form 
+class qtype_vhdl_edit_form extends question_edit_form 
 {
 	private static $hdl_file_options = 
 			array(
@@ -76,9 +76,48 @@ class question_edit_vhdl_form extends question_edit_form
         $mform->addRule('testbench', get_string('notestbench', 'qtype_vhdl'), 'required');
         //allow user feedback
         $mform->addelement('advcheckbox', 'autofeedback', '', ' '.get_string('autofeedback', 'qtype_vhdl'), array("group" => ""), array('0', '1'));
-        
+
+        //
+        $this->add_interactive_settings(); 
         
     }
+
+    /*
+    protected function data_preprocessing($question) 
+    {
+        $question = parent::data_preprocessing($question);
+
+        if (empty($question->options)) {
+            return $question;
+        }
+
+
+    	//return array('question_vhdl', 'hdltype', 'allowmulti', 'testbench', 'autofeedback');
+
+        $question->hdltype = $question->options->hdltype;
+        $question->allowmulti = $question->options->hdltype;
+        $question->autofeedback = $question->options->autofeedback;
+
+        $draftid = file_get_submitted_draft_itemid('testbench');
+
+
+        $question->testbench = array();
+        $question->testbench['text'] = file_prepare_draft_area(
+            $draftid,           // draftid
+            $this->context->id, // context
+            'qtype_vhdl',      // component
+            'testbench',       // filarea
+            !empty($question->id) ? (int) $question->id : null, // itemid
+            $this->fileoptions, // options
+            $question->options->testbench // text
+        );
+        $question->testbench['itemid'] = $draftid;
+
+        return $question;
+    }
+
+     */
+ 
 
 
     function validation($fromform, $files)

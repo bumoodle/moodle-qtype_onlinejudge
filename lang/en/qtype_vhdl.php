@@ -10,7 +10,7 @@
 
 $string['addingvhdl'] = 'Adding an HDL Simulation question';
 $string['editingvhdl'] = 'Editing an HDL Simulation question';
-$string['vhdl'] = 'HDL Simulation';
+$string['pluginname'] = $string['vhdl'] = 'HDL Simulation';
 $string['vhdl_help'] = 'In response to a question (that may include a image) the respondent uploads a HDL circuit description, which is tested for accuracy using Xilinx simulation tools.';
 $string['vhdl_link'] = 'question/type/vhdl';
 $string['vhdlsummary'] = 'An advanced HDL question, which automatically grades student designs.';
@@ -34,8 +34,11 @@ $string['notestbench'] = 'You must provide at least one valid testbench file!';
 
 $string['uploaddesign'] = 'Submit your design:';
 $string['userdesign'] = 'Your Design';
-$string['erroroccurred'] = '<br/><b><font color="#7A0707">There was a problem with your submission, and it was unable to be automatically graded.</font></b><br /> Check your design, and try again in a moment. (This error also occurs if you submit the same design twice.).';
+$string['erroroccurred'] = '<br/><b><font color="#7A0707">There was a problem with your submission, and it was unable to be automatically graded.</font></b><br /> The system wasn\'t able to figure out a more detailed description. Check your design, and try again in a moment.';
+$string['xilinx_error'] = '<br/><b><font color="#7A0707">The Xilinx tools weren\'t able to interpret your submission. This could be a problem with your submission or with the Xilinx tools.</font></b><br />They provided the following error message:';
 
 $string['catchall'] = 'An unknown error occurred.';
+
+$string['pleasesubmit'] = 'Please attach the file to be submitted.';
 
 $string['remote_issue'] = 'An error occurred contacting the HDL Simulation server. You will not be penalized for this submission.';
