@@ -1,0 +1,464 @@
+#!/usr/bin/env python
+'''
+Created on Nov 5, 2011
+
+@author: ktemkin
+'''
+
+import sys
+import argparse
+import pyparsing
+import xml.etree.ElementTree as ElementTree
+
+class FSM:
+    
+    def __init__(self, inputs, outputs, moore_outputs, mealy_outputs, states, reset_state):
+        
+        self.inputs = inputs
+        self.outputs = outputs #TODO: deprecate
+        self.moore_outputs = moore_outputs
+        self.mealy_outputs = mealy_outputs
+        self.states = states
+        self.reset_state = reset_state
+        
+    
+    @staticmethod
+    def from_QFSM(fsm_file):
+    
+        #parse the FSM into an XML tree
+        tree = ElementTree.parse(fsm_file)
+        
+        #get a reference to the FSM object, a child of the QFSM project
+        fsm = tree.find('machine')    
+        
+        #create a FSM from the core machine
+        return FSM.from_XML(fsm)
+        
+        
+    @staticmethod
+    def from_XML(fsm):
+        
+        states = {}
+        
+        #
+        # Get a list of the I/O for the machine
+        #
+        
+        
+        #get the input names
+        inputs = fsm.find('inputnames').text
+        
+        #if we have no inputs, use an empty list
+        if inputs is None:
+            inputs = []
+            
+        #otherwise, split the string into a list
+        else:
+            inputs = inputs.split(',')
+                
+                
+                
+        #get the moore outputs
+        outputs = fsm.find('outputnames_moore').text
+        
+        #if we have no moore outputs, use an empty list
+        if outputs is None:
+            outputs = []
+            
+        #otherwise, split the string into a list
+        else:
+            outputs = outputs.split(',')
+        
+        #get a copy of the moore outputs
+        outputs_moore = outputs[:] 
+        
+        #get the mealy outputs
+        outputs_mealy = fsm.find('outputnames').text
+        
+        #if we have no mealy outputs, use an empty list
+        if outputs_mealy is None:
+            outputs_mealy = []
+            
+        #otherwise, split the string into a list
+        else:
+            outputs_mealy = outputs_mealy.split(',')
+    
+    
+    
+    
+        #merge the mealy/moore outputs into one list    
+        for output in outputs_mealy:
+            outputs.append(output)
+        
+        
+        #
+        # Build a master list of the states; from the HDL's perspective, they form the backbone of the FSM
+        #
+        
+        #for each state in the QFSM description
+        for xml_state in fsm.findall('state'):
+            
+            #convert each XML state into a FSMState object
+            state = FSMState.from_XML(xml_state)
+             
+            #and add them to our state dictionary, by code
+            states[state.code] = state
+            
+        #
+        # Determine the reset state
+        #
+        reset_state = fsm.attrib['initialstate']
+            
+        #
+        # Add each of the FSM transitions to the state which sources it.
+        #
+            
+        #for each transition in the QFSM description
+        for xml_edge in fsm.findall('transition'):
+            
+            #convert each XML edge into a FSMEdge object
+            edge = FSMEdge.from_XML(xml_edge)
+            
+            #and add it to the source state
+            states[edge.source].add_edge(edge)
+        
+        
+        #return a new FSM object
+        return FSM(inputs, outputs, outputs_moore, outputs_mealy, states, reset_state)
+    
+    def to_VHDL(self):
+        
+        buf = "library IEEE;\n"
+        buf += 'use IEEE.std_logic_1164.all;\n\n'
+        
+        #entity declaration
+        buf += 'entity fsm is\n'
+        buf += '    port\n    (\n'
+        buf += '        clk, reset : in STD_LOGIC;\n        '
+        
+        #
+        # VHDL ENTITY
+        #
+        
+        #inputs:
+        for input in self.inputs:
+            buf += input + ', ';
+            
+        #if we added inputs, terminate them
+        if self.inputs:
+                
+            #strip the terminating comma, and end the input list
+            buf = buf[:-2] + ' : in STD_LOGIC;\n        ' 
+        
+        #outputs:
+        for output in self.outputs:
+            buf += output + ', '
+            
+        #strip the terminating comma, and end the outputs list
+        buf = buf[:-2] + ' : out STD_LOGIC\n'
+        
+        #end the entity
+        buf += '    );\n'
+        buf += 'end entity;\n\n'
+        
+        #
+        # VHDL ARCHITECTURE
+        #
+        buf += 'architecture behavioral of fsm is\n'
+        
+        #create the state enumeration
+        buf += '    type state_type is \n        ('
+        
+        #use each of the state codes to give name to the state enumeration
+        for code in self.states.keys():
+            buf += '\n            STATE_' + code + ','
+        
+        #strip the trailing comma, and end the state enumeration
+        buf = buf[:-1] + '\n        );\n\n'
+        
+        buf += '    signal state : state_type := STATE_' + self.reset_state + ';\n'
+        buf += '    signal next_state : state_type; \n\n'
+        
+        if self.mealy_outputs:
+            if len(self.mealy_outputs) > 1:
+                buf += '    signal mealy_out : std_logic_vector(' + str(len(self.mealy_outputs) - 1) + ' downto 0);\n'
+            else:
+                buf += '    signal mealy_out : std_logic;\n'
+        
+        if self.moore_outputs:
+            if len(self.moore_outputs) > 1:
+                buf += '    signal moore_out : std_logic_vector(' + str(len(self.moore_outputs) - 1) + ' downto 0);\n\n'
+            else:
+                buf += '    signal moore_out : std_logic;\n\n' 
+        
+        buf += 'begin\n\n'
+        
+        #
+        # output assignments
+        #
+        
+        if len(self.mealy_outputs) > 1:
+            buf += '    (' + ', '.join(self.mealy_outputs) + ') <= mealy_out;\n'
+        elif self.mealy_outputs:
+            buf += '    ' + self.mealy_outputs[0] + ' <= mealy_out;\n'
+            
+        if len(self.moore_outputs) > 1:
+            buf += '    (' + ', '.join(self.moore_outputs) + ') <= moore_out;\n'
+        elif self.moore_outputs:
+            buf += '    ' + self.moore_outputs[0] + ' <= moore_out;\n'            
+        
+        buf += '\n'
+        
+        #
+        # register / reset process
+        #
+        
+        buf += '    process(clk)\n'
+        buf += '    begin\n'
+        buf += '        if rising_edge(clk) then\n'
+        buf += '            if reset = \'1\' then\n'
+        buf += '                state <= STATE_' + self.reset_state + ';\n' 
+        buf += '            else   \n'
+        buf += '                state <= next_state;\n'
+        buf += '            end if;\n'
+        buf += '        end if;\n'
+        buf += '    end process;\n\n'
+        
+        #
+        # combinational process
+        #
+        
+        buf += '    process(state, ' + ', '.join(self.inputs) + ')\n'
+        buf += '    begin\n\n'
+        buf += '        case state is\n\n'
+        
+        #for each state in the FSM
+        for state in self.states:
+            
+            buf += '            --original name: ' + self.states[state].name + '\n'
+            
+            buf += '            when STATE_' + state + ' =>\n\n' 
+            
+            #handle moore outputs
+            if len(self.moore_outputs) > 1:
+                buf += '                moore_out <= "' + self.states[state].output.zfill(len(self.moore_outputs)) + '";\n\n'
+            elif self.moore_outputs:
+                buf += '                moore_out <= \'' + self.states[state].output + '\';\n\n'
+            
+            
+            #for each edge leaving the FSM
+            for edge in self.states[state].out_edges:
+                
+                if edge.condition:
+                    buf += '                if (' + algebra_to_VHDL(edge.condition, self.inputs) + ') = \'1\' then\n'
+                else:
+                    buf += '                if true then\n'
+                
+                
+                buf += '                    next_state <= STATE_' + edge.target + ';\n'
+                
+                #if the given arc has mealy outputs, set their values
+                if len(self.mealy_outputs) > 1:
+                    buf += '                mealy_out <= "' + edge.output.zfill(len(self.mealy_outputs)) + '";\n'
+                elif self.mealy_outputs:
+                    buf += '                mealy_out <= \'' + edge.output + '\';\n'
+                
+                buf += '                end if;\n\n'
+                
+        
+        
+        buf += '        end case;\n\n'
+        buf += '    end process;\n\n'
+        
+        buf += 'end architecture;\n'
+            
+        return buf
+
+class FSMState:
+    
+    def __init__(self, name, code, output, out_edges = None):
+        
+        self.name = sanitize_name(name)
+        self.code = code
+        self.output = output
+        
+        #if out-edges have been specified, use them; otherwise, assume an empty list
+        if out_edges:
+            self.out_edges = out_edges
+        else:
+            self.out_edges = []
+
+    def add_edge(self, edge):
+        self.out_edges.append(edge)
+
+    def __repr__(self):
+        return '<FSMState ' + self.name + ' (' + self.code +') >'
+        
+    @staticmethod
+    def from_XML(element):
+        return FSMState(element.text, element.attrib['code'], element.attrib['moore_outputs'])  
+    
+class FSMEdge:
+    
+    def __init__(self, source, target, condition, output=None):
+        
+        self.source = source
+        self.target = target
+        self.condition = condition
+        self.output = output
+        
+    @staticmethod
+    def from_XML(xml_edge):
+       
+        try:
+            #find the source state's code
+            source = xml_edge.find('from').text
+            
+            #the target state's code
+            target = xml_edge.find('to').text
+
+        except AttributeError:
+            print "ERROR:HDL: One of your arcs is not properly connected! Check for an illegal arc, which will be highlighted in red and will be disconnected on at least one side."
+            sys.exit(10)
+        
+        #the transition condition (inputs)
+        condition = xml_edge.find('inputs').text
+        any_flag = xml_edge.find('inputs').attrib['any']
+        
+        #handle "always" / "Don't Care" arcs
+        if any_flag ==1 or condition is None or condition.count('x') == len(condition) or condition == '-': # or condition.attrib['any']=='1':
+            condition = None
+        
+        #and the Mealy outputs, if present
+        output = xml_edge.find('outputs').text
+        
+        #return the newly created edge
+        return FSMEdge(source, target, condition, output)
+
+def main():
+    
+    #Enumerate the command line arguments, to automate argument parsing.
+    parser = argparse.ArgumentParser(description='Converts a QFSM file to VHDL for simulation; intended to compliment the HDL Simulation grading mechanism for University-level logic course-work.')
+    parser.add_argument('fsm', metavar='fsm_file', type=open, help='A QFSM finite state machine description.')
+    
+    #Parse the command line arguments.
+    args = parser.parse_args()
+
+    #pass the FSM file recieved from the command line to the FSM parser 
+    fsm = FSM.from_QFSM(args.fsm) 
+    
+    #finally, print out the resultant FSM
+    print fsm.to_VHDL()
+
+
+def algebra_to_VHDL(algebra_notation, inputs):
+    
+    #get an abstract syntax list which describes the internal logic
+    asl = parse_algebraic(algebra_notation, inputs)
+    
+    #and convert that ASL to VHDL
+    return asl_to_VHDL(asl)
+    
+
+def asl_to_VHDL(asl):    
+    
+    #base case: we've reached a leaf in the abstract syntax tree
+    if not isinstance(asl, list):
+        return asl
+    
+    #recursive case 1: unary operator (e.g. NOT)
+    if asl[1] == "'":
+        return 'not ' + asl_to_VHDL(asl[0])
+    
+    #recursive case 2: binary operator
+    
+    #AND
+    if asl[1] == '*':
+        
+        buf = '('
+        
+        for i in asl:
+            if i == '*':
+                buf += ' and '
+            else:
+                buf += asl_to_VHDL(i)
+                
+        return buf + ')'
+        
+        #return '(' + asl_to_VHDL(asl[0]) + ' and ' + asl_to_VHDL(asl[2]) + ')'
+        
+    #OR
+    if asl[1] == '+':
+        
+        buf = '('
+        
+        for i in asl:
+            if i == '+':
+                buf += ' or '
+            else:
+                buf += asl_to_VHDL(i)
+                
+        return buf + ')'
+        
+        #return '(' + asl_to_VHDL(asl[0]) + ' or ' + asl_to_VHDL(asl[2]) + ')'
+    
+    #XOR
+    if asl[1] == '^':
+        
+        buf = '('
+        
+        for i in asl:
+            if i == '^':
+                buf + ' xor '
+            else:
+                buf += asl_to_VHDL(i)
+                
+        return buf + ')'
+        
+        #return '(' + asl_to_VHDL(asl[0]) + ' xor ' + asl_to_VHDL(asl[2]) + ')'
+
+
+def parse_algebraic(algebra_notation, inputs):
+    
+    #create a basic identifier grammar element
+    IdentifierChars = pyparsing.alphanums + '_'
+    Identifier = pyparsing.Word(IdentifierChars)
+    
+    #convert each of the VHDL input terms into a grammar literal
+    inputTerms = reduce(lambda x, y : x | pyparsing.Literal(y.strip()), inputs)
+    
+    #define the algebra operators, in order of precedence
+    algebraOperators = \
+        [
+            ("'", 1, pyparsing.opAssoc.LEFT), #NOT
+            (pyparsing.Optional("*", default='*'), 2, pyparsing.opAssoc.LEFT), #AND, including implied AND
+            ("+", 2, pyparsing.opAssoc.LEFT), #OR
+            ("^", 2, pyparsing.opAssoc.LEFT)  #XOR
+        ]
+        
+    #define a new grammar in terms of the input terms and algebraic operators
+    algebraExpresion = pyparsing.operatorPrecedence(inputTerms, algebraOperators)
+    
+    #use the newly created grammar to convert the boolean expression into an abstract syntax list
+    try:
+        asl = algebraExpresion.parseString(algebra_notation)[0]
+    except pyparsing.ParseException, e:
+        print 'ERROR:HDL: Could not parse', algebra_notation, 'in terms of inputs', inputs
+        raise e
+        
+    
+    #remove the PyParsing object wrapper from the list 
+    if isinstance(asl, pyparsing.ParseResults):
+        asl = asl.asList()
+        
+    #return the abstract syntax list
+    return asl
+
+def sanitize_name(name):
+    
+    #TODO
+    return name
+        
+
+if __name__ == '__main__':
+    main()

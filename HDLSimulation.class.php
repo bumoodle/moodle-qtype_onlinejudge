@@ -35,7 +35,7 @@ class InvalidFiletypeException extends SimulationException {}
  */
 class HDLSimulation
 {
-    const KEEP_FILES = true;
+    const KEEP_FILES = false;
 
     /**
      * Stores the temporary working "sandbox" directory for the simulation.
@@ -77,8 +77,8 @@ class HDLSimulation
     /**
      * The path to the script (or binary) on the server which runs the actual simulation.
      */
-    #const RUNTEST_SCRIPT = '/srv/autolab/runtest.sh';
-    const RUNTEST_SCRIPT = '/home/ktemkin/.bin/runtest.sh';
+    const RUNTEST_SCRIPT = '/srv/autolab/runtest.sh';
+    //const RUNTEST_SCRIPT = '/home/ktemkin/.bin/runtest.sh';
 
     /**
      * Maximum simulation runtime, in seconds.
@@ -460,7 +460,7 @@ class HDLSimulation
     {
         $grade = 100;
 
-        if(!is_array($this->marks))
+        if($this->marks === false || !is_array($this->marks))
             throw new SimulationException($this->last_error);
             
         //if the array is empty, there were no merits or demerits; assume 100%
@@ -541,6 +541,14 @@ class HDLSimulation
                 return false;
                 //throw new SimulationException(get_string('xilinx_error', 'qtype_vhdl') . '<br /><br /><div style="font-family: monospace;">'. htmlentities($out[0]).'</font>');
             }
+
+            //if the Xilinx tool can't find the user design, stop parsing with an error message
+            if(strpos($out[0], 'remains a black-box since it has no binding entity.') !== false)
+            {
+                $this->last_error = get_string('notcompatible', 'qtype_vhdl');
+                return false;
+            }
+                
 
             //stop discarding lines once we reach the start control statement
             if($x = self::parse_report(array_shift($out)) == $start_mark)

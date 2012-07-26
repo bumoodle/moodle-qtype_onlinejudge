@@ -68,6 +68,7 @@ class qtype_vhdl_edit_form extends question_edit_form
         	'sch' => get_string('schonly', 'qtype_vhdl')));
         //allow multiple files 
         $mform->addelement('advcheckbox', 'allowmulti', '', ' '.get_string('allowmultifiles', 'qtype_vhdl'), array("group" => ""), array('0', '1'));
+
         
         //grading testbench information
         $mform->addelement('header', 'gradingbench', get_string('gradingbench', 'qtype_vhdl'));
@@ -76,7 +77,7 @@ class qtype_vhdl_edit_form extends question_edit_form
         $mform->addRule('testbench', get_string('notestbench', 'qtype_vhdl'), 'required');
         //allow user feedback
         $mform->addelement('advcheckbox', 'autofeedback', '', ' '.get_string('autofeedback', 'qtype_vhdl'), array("group" => ""), array('0', '1'));
-
+        $mform->setDefault('autofeedback', '1');
         //
         $this->add_interactive_settings(); 
         

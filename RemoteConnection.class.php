@@ -158,9 +158,6 @@ class RemoteConnection
     
     private function event_disconnect($reason, $message, $language)
     {
-        //debug output
-        Debug::pre_print(array($reason, $message, $language));
-        
         //invalidate the session
         $this->ssh = false;
     }

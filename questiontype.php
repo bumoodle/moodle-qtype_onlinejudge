@@ -69,6 +69,7 @@ class qtype_vhdl extends question_type
     {
         $draftitemid = file_get_submitted_draft_itemid('testbench');
         file_save_draft_area_files($formdata->testbench, $formdata->context->id, 'qtype_vhdl', 'testbench', $draftitemid, $this->fileoptions);
+        $this->save_hints($formdata);
         parent::save_question_options($formdata);
     }
 
