@@ -9,7 +9,7 @@
  */
 
 $plugin->component = 'qtype_vhdl';
-$plugin->version  = 2010090505;
+$plugin->version  = 2012072600;
 $plugin->requires = 2010090501;
 
 
