@@ -55,7 +55,6 @@ class qtype_vhdl_edit_form extends question_edit_form
     function definition_inner(&$mform) 
     {
 
-       
         //user HDL input settings
         $mform->addelement('header', 'userinput', get_string('inputoptions', 'qtype_vhdl'));
         //accepted HDLs            
@@ -72,8 +71,10 @@ class qtype_vhdl_edit_form extends question_edit_form
         
         //grading testbench information
         $mform->addelement('header', 'gradingbench', get_string('gradingbench', 'qtype_vhdl'));
+        
         //file upload
         $mform->addelement('filemanager', 'testbench', get_string('gradingbenchfiles', 'qtype_vhdl'), null, self::$hdl_file_options);
+
         $mform->addRule('testbench', get_string('notestbench', 'qtype_vhdl'), 'required');
         //allow user feedback
         $mform->addelement('advcheckbox', 'autofeedback', '', ' '.get_string('autofeedback', 'qtype_vhdl'), array("group" => ""), array('0', '1'));

@@ -35,7 +35,7 @@ $string['notestbench'] = 'You must provide at least one valid testbench file!';
 $string['uploaddesign'] = 'Submit your design:';
 $string['userdesign'] = 'Your Design';
 $string['erroroccurred'] = '<br/><b><font color="#7A0707">There was a problem with your submission, and it was unable to be automatically graded.</font></b><br /> The system wasn\'t able to figure out a more detailed description. Check your design, and try again in a moment.';
-$string['toolerror'] = '<br/><b><font color="#7A0707">The lab tools weren\'t able to interpret your submission. This could be a problem with your submission or with the lab tools.</font></b><br />They provided the following error message:';
+$string['toolerror'] = '<br/><b><font color="#7A0707">The lab tools weren\'t able to interpret your submission. This could be a problem with your submission or with the lab tools.</font></b><br />They provided the following error message:<br /><br /><div style="font-family: monospace;">{$a}</div></font>';
 $string['notcompatible'] = '<br/><b><font color="#7A0707">The system couldn\'t find your design within the files submitted. </font></b><br />This could be a naming issue; or one or more files could be missing or malformed.';
 
 $string['catchall'] = 'An unknown error occurred.';
