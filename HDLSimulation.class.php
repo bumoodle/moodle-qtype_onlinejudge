@@ -77,13 +77,13 @@ class HDLSimulation
     /**
      * The path to the script (or binary) on the server which runs the actual simulation.
      */
-    const RUNTEST_SCRIPT = '/srv/autolab/runtest.sh';
+    //const RUNTEST_SCRIPT = '/srv/autolab/runtest.sh';
     //const RUNTEST_SCRIPT = '/home/ktemkin/.bin/runtest.sh';
 
     /**
      * Maximum simulation runtime, in seconds.
      */
-    const RUNTIME_MAX = 60;
+    //const RUNTIME_MAX = 60;
 
 
     /**
@@ -106,7 +106,6 @@ class HDLSimulation
      */
     public function __construct(array $reference, array $user_design, $allowed_types=array('sch', 'vhdl', 'v', 'fsm'), $run_prep=true)
     {
-            
         //create a local copy of the Moodle file storage class
         $this->fs = get_file_storage();
             
@@ -332,6 +331,9 @@ class HDLSimulation
      */
     public function run_simulation($force_rerun = false, $cache=true)
     {
+        //use the global configuration object
+        global $CFG;
+
         //if we're not trying to force a rerun
         if(!$force_rerun)
         {
@@ -356,7 +358,7 @@ class HDLSimulation
 
         //attempt to limit the runtime of the application
         //(the server typically has its own value- we may or may not be allowed to overwrite it
-        @set_time_limit(RUNTIME_MAX);
+        @set_time_limit($CFG->qtype_vhdl_runtimemax);
 
         //move to the temporary directory
         chdir($this->work_dir);
@@ -366,7 +368,7 @@ class HDLSimulation
         $security_token = substr(base_convert(mt_rand(mt_getrandmax()/2, mt_getrandmax()), 10, 36), 0, 6);
 
         //perform the command
-        exec(self::RUNTEST_SCRIPT." ".$security_token, $this->raw_output);
+        exec($CFG->qtype_vhdl_runtestpath." ".$security_token, $this->raw_output);
 
         //parse the ISIM out to get grading and feedback information
         $this->marks = $this->parse_isim_out($this->raw_output, $security_token);
