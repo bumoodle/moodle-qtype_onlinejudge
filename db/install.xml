@@ -24,8 +24,7 @@
 <FIELD NAME="date" TYPE="number" LENGTH="11" NOTNULL="false" SEQUENCE="false" COMMENT="Date during which the testbench was run; used for expiry." PREVIOUS="marks"/>
 </FIELDS>
 <KEYS>
-<KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="filehashkey"/>
-<KEY NAME="filehashkey" TYPE="unique" FIELDS="fileshash" PREVIOUS="primary"/>
+    <KEY NAME="primary" TYPE="primary" FIELDS="id" />
 </KEYS>
 </TABLE>
 </TABLES>
