@@ -537,9 +537,9 @@ class HDLSimulation
             //if the Xilinx tool throws an error, stop parsing with an error message
             if(substr($out[0], 0, 9) == 'ERROR:HDL')
             {
-                $this->last_error = get_string('xilinx_error', 'qtype_vhdl') . '<br /><br /><div style="font-family: monospace;">'. htmlentities($out[0]).'</font>';
+                $this->last_error = get_string('toolerror', 'qtype_vhdl') . '<br /><br /><div style="font-family: monospace;">'. htmlentities($out[0]).'</font>';
                 return false;
-                //throw new SimulationException(get_string('xilinx_error', 'qtype_vhdl') . '<br /><br /><div style="font-family: monospace;">'. htmlentities($out[0]).'</font>');
+                //throw new SimulationException(get_string('toolerror', 'qtype_vhdl') . '<br /><br /><div style="font-family: monospace;">'. htmlentities($out[0]).'</font>');
             }
 
             //if the Xilinx tool can't find the user design, stop parsing with an error message

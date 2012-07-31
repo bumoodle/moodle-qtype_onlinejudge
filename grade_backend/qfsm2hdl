@@ -444,8 +444,7 @@ def parse_algebraic(algebra_notation, inputs):
         asl = algebraExpresion.parseString(algebra_notation)[0]
     except pyparsing.ParseException, e:
         print 'ERROR:HDL: Could not parse', algebra_notation, 'in terms of inputs', inputs
-        raise e
-        
+        sys.exit(10); 
     
     #remove the PyParsing object wrapper from the list 
     if isinstance(asl, pyparsing.ParseResults):
