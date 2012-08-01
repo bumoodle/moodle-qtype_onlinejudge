@@ -98,6 +98,9 @@ class qtype_vhdl_edit_form extends question_edit_form
         //perform the base modifications to the question type
         $question = parent::data_preprocessing($question);
         
+        //load the hints to be edited
+        $question = $this->data_preprocessing_hints($question, true, true);
+
         //if we have an existing file itemID, use it to import the existing files
         $itemid = empty($question->options->testbench) ? null : $question->options->testbench;
 
@@ -112,6 +115,8 @@ class qtype_vhdl_edit_form extends question_edit_form
         //Replace the question's testbench with a reference to the draft file area.
         //If a testbench previously existed, copy it there.
         $question->testbench = $draftitemid;
+
+        
 
         //return the newly updated question
         return $question;
