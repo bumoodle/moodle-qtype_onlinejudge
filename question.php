@@ -252,12 +252,16 @@ class qtype_vhdl_question extends question_graded_automatically
         if ($component == 'question' && $filearea == 'response_answer') 
         {
             return true;
+        } else if ($component == 'question' && $filearea == 'hint') {
+            return $this->check_hint_file_access($qa, $options, $args);
         }
         else 
         {
             return parent::check_file_access($question, $state, $options, $contextid, $component, $filearea);
         }
     }
+
+
 
 
 }

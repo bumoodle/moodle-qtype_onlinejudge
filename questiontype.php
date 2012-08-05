@@ -281,15 +281,15 @@ class qtype_vhdl extends question_type
 
     function check_file_access($question, $state, $options, $contextid, $component, $filearea, $args) 
     {
-
-
-
         if ($component == 'question' && $filearea == 'response_answer') 
         {
-            die('delegated yes');
             return true;
         }
 
+        elseif ($component == 'question' && $filearea == 'hint')
+        {
+            return true;
+        }
         elseif ($component == 'question' && $filearea == 'answerfeedback') 
         {
 

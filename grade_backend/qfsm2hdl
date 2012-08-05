@@ -443,7 +443,7 @@ def parse_algebraic(algebra_notation, inputs):
     try:
         asl = algebraExpresion.parseString(algebra_notation)[0]
     except pyparsing.ParseException, e:
-        print 'ERROR:HDL: Could not parse', algebra_notation, 'in terms of inputs', inputs
+        print 'ERROR:HDL: Could not understand your arc condition "', algebra_notation, '". Your answer should have been a Boolean expression in terms of your FSM\'s inputs: ', inputs
         sys.exit(10); 
     
     #remove the PyParsing object wrapper from the list 
