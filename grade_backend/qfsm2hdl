@@ -326,7 +326,7 @@ class FSMEdge:
         any_flag = xml_edge.find('inputs').attrib['any']
         
         #handle "always" / "Don't Care" arcs
-        if any_flag ==1 or condition is None or condition.count('x') == len(condition) or condition == '-': # or condition.attrib['any']=='1':
+        if any_flag == "1" or condition is None or condition.count('x') == len(condition) or condition == '-': # or condition.attrib['any']=='1':
             condition = None
         
         #and the Mealy outputs, if present
