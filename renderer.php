@@ -122,9 +122,13 @@ class qtype_vhdl_renderer extends qtype_renderer
         $name = $qa->get_qt_field_name('answer');
         $name_raw = $qa->get_qt_field_name('answerraw');
         $context_raw = $qa->get_qt_field_name('attemptid');
+       
+        // Create a file manager and file manager renderer:
+        $file_manager = new form_filemanager($pickeroptions);
+        $file_renderer = $this->page->get_renderer('core', 'files');
 
-        //and create and render the file picker
-        $retval =  form_filemanager_render($pickeroptions);
+        // And render the file picker: 
+        $retval =  $file_renderer->render($file_manager);
         $retval .= html_writer::empty_tag('input', array('type' => 'hidden', 'name' => $name, 'value' => $pickeroptions->itemid));
         $retval .= html_writer::empty_tag('input', array('type' => 'hidden', 'name' => $name_raw, 'value' => $pickeroptions->itemid));
         $retval .= html_writer::empty_tag('input', array('type' => 'hidden', 'name' => $context_raw, 'value' => $qa->get_database_id()));
