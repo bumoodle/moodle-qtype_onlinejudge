@@ -10,10 +10,14 @@
 
 $string['addingvhdl'] = 'Adding an HDL Simulation question';
 $string['editingvhdl'] = 'Editing an HDL Simulation question';
+
 $string['pluginname'] = $string['vhdl'] = 'HDL Simulation';
-$string['vhdl_help'] = 'In response to a question (that may include a image) the respondent uploads a HDL circuit description, which is tested for accuracy using Xilinx simulation tools.';
-$string['vhdl_link'] = 'question/type/vhdl';
-$string['vhdlsummary'] = 'An advanced HDL question, which automatically grades student designs.';
+$string['pluginname_help'] = 'In response to a question (that may include a image) the respondent chooses from multiple answers. There are two types of multiple choice questions - one answer and multiple answer.';
+$string['pluginnameadding'] = 'Adding an HDL Simulation question';
+$string['pluginnameediting'] = 'Editing an HDL Simulation question';
+$string['pluginname_help'] = 'In response to a question (that may include a image) the respondent uploads a HDL circuit description, which is tested for accuracy using Xilinx simulation tools.';
+$string['pluginname_link'] = 'question/type/vhdl';
+$string['pluginname_summary'] = 'An advanced HDL question, which automatically grades student designs.';
 
 $string['inputoptions'] = 'User HDL Input';
 $string['allowmultifiles'] = 'Allow the user to submit multiple files, for a multi-level design.';
