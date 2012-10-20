@@ -8,8 +8,8 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['addingvhdl'] = 'Adding an HDL Simulation question';
-$string['editingvhdl'] = 'Editing an HDL Simulation question';
+$string['pluginnameadding'] = 'Adding an HDL Simulation question';
+$string['pluginnameediting'] = 'Editing an HDL Simulation question';
 
 $string['pluginname'] = $string['vhdl'] = 'HDL Simulation';
 $string['pluginname_help'] = 'In response to a question (that may include a image) the respondent chooses from multiple answers. There are two types of multiple choice questions - one answer and multiple answer.';
