@@ -2,28 +2,45 @@
 /**
  * Defines the editing form for the shortanswer question type.
  *
- * @package   qtype_vhdl
+ * @package   qtype_onlinejudge
  * @copyright 2011 Binghamton University
  * @author    Kyle Temkin <ktemkin@binghamton.edu>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['pluginnameadding'] = 'Adding an HDL Simulation question';
-$string['pluginnameediting'] = 'Editing an HDL Simulation question';
+$string['pluginnameadding'] = 'Adding a Coding question';
+$string['pluginnameediting'] = 'Editing a Coding Simulation question';
 
-$string['pluginname'] = $string['vhdl'] = 'HDL Simulation';
+$string['pluginname'] = $string['qtype_onlinejudge'] = 'Coding';
 $string['pluginname_help'] = 'In response to a question (that may include a image) the respondent chooses from multiple answers. There are two types of multiple choice questions - one answer and multiple answer.';
-$string['pluginnameadding'] = 'Adding an HDL Simulation question';
-$string['pluginnameediting'] = 'Editing an HDL Simulation question';
 $string['pluginname_help'] = 'In response to a question (that may include a image) the respondent uploads a HDL circuit description, which is tested for accuracy using Xilinx simulation tools.';
-$string['pluginname_link'] = 'question/type/vhdl';
+$string['pluginname_link'] = 'question/type/onlinejudge';
 $string['pluginname_summary'] = 'An advanced HDL question, which automatically grades student designs.';
+$string['pluginnamesummary'] = 'An advanced coding question, which automatically grades student designs.';
+
+$string['estimated_wait'] = 'Estimated wait:';
+$string['estimated_wait_message'] = 'There are {$a->length} programs waiting to be graded; your program should be graded in less than <b>{$a->estimated_time}</b> seconds.';
+
+$string['result'] = 'Result';
+$string['status'] = 'Status';
+$string['status_pending_help'] = 'Questions which require you to submit code take a little bit longer for the computer to grade, especially at peak times, such as just before the due dates for quizzes. <br/><br/>. You can work on other problems while you wait for this question to be graded.';
+$string['status_grading_help'] = 'Questions which require you to submit code take slightly longer to grade. Your code is currently being graded in the background; you can click the Refresh button to continue.';
+
+$string['in_line'] = 'Waiting in line to be graded...';
+
+$string['grading'] = 'Your submission is being graded.';
+$string['grading_in_progress'] = 'The system is currently grading your submission in the background; grading should be completed momentarily. <i>You can click Refresh to view an updated status.</i>';
+
+$string['details'] = 'Details';
+$string['compiler_output'] = 'Compiler output:';
+$string['comments'] = 'Comments';
+$string['grading_details'] = 'Grading details:';
 
 $string['inputoptions'] = 'User HDL Input';
 $string['allowmultifiles'] = 'Allow the user to submit multiple files, for a multi-level design.';
 $string['allowzipfiles'] = 'Allow the user to submit one or more ZIP archives, which will be automatically unzipped.';
 
-$string['hdltype'] = 'Accepted HDLs';
+$string['language'] = 'Language';
 $string['anytype'] = 'Accept any valid HDL.';
 $string['anytruehdl'] = 'Accept VHDL or Verilog, but not Schematic files.';
 $string['vhdlonly'] = 'Accept only VHDL.';

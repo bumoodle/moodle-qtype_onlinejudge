@@ -26,6 +26,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/lib/form/filemanager.php');
+require_once($CFG->dirroot . '/question/type/onlinejudge/lib.php');
 
 /**
  * Generates the output for true-false questions.
@@ -33,51 +34,206 @@ require_once($CFG->dirroot . '/lib/form/filemanager.php');
  * @copyright  2009 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_vhdl_renderer extends qtype_renderer
+class qtype_onlinejudge_renderer extends qtype_renderer
 {
-
-
+    
+    /**
+     * Generates the question's text status information, entry area, and controls for the given questino.
+     *
+     * @param question_attempt $qa The question to print.
+     * @param question_display_options $options The options which specify how the question should be formatted.
+     */ 
     public function formulation_and_controls(question_attempt $qa, question_display_options $options) 
     {
+        $result = '';
 
+        //Get the core question definition and the active question behavior object.
         $question = $qa->get_question();
+        $behaviour = $qa->get_behaviour();
 
         //get the most recent step with a provided answer
         $step = $qa->get_last_step_with_qt_var('answer');
 
-        //and output the answer
-        $result = '';
+        //Output the question's text.
         $result .= html_writer::tag('div', $question->format_questiontext($qa), array('class' => 'qtext'));
 
+        //Output the answer form.
+        $file_picker = empty($options->readonly) ? $this->render_file_picker($qa, $options) : $this->files_read_only($qa, $options);
         $result .= html_writer::start_tag('div', array('class' => 'ablock'));
-
-        if(empty($options->readonly))
-            $result .= html_writer::tag('div', $this->render_file_picker($qa, $options), array('class' => 'answer'));
-        else
-            $result .= html_writer::tag('div', $this->files_read_only($qa, $options), array('class' => 'answer'));
-        
-        
-        
+        $result .= html_writer::tag('div', $file_picker, array('class' => 'answer'));
         $result .= html_writer::end_tag('div');
-
         
         //get the last submitted step 
-        $last_submitted_step = $qa->get_last_step_with_qt_var('-submit');
-        $last_submitted_answer = $last_submitted_step->get_qt_data();
+        $feedback_step = $behaviour->get_feedback_step();
+        $feedback_answer = $feedback_step->get_qt_data();
 
-        //if a raw answer was provided for the last submission, provide feedback
-        if(array_key_exists('answerraw', $last_submitted_answer))
-        {
-            //retrieve any feedback from the question object
-            $feedback = $question->get_autograde_feedback($last_submitted_answer);
-
-            //if feedback was provided, display it
-            if(!empty($feedback))
-                $result .= html_writer::tag('div', $feedback, array('class' => 'feedback'));
+        //Get the ID 
+        $active_task_id = $behaviour->get_active_task_id();
+        
+        //If the quesiton has an active task, display its status.
+        if($active_task_id !== null) {
+            $result .= $this->queued_grade_status($active_task_id);
+        } 
+        //If the feedback step has been graded, display its status.
+        else if($feedback_step->has_qt_var('_status')) {
+            $result .= $this->grading_results($qa, $feedback_answer);
         }
-         
+
         return $result;
     }
+
+    protected function grading_results($qa, $response) {
+    
+        //Start a buffer to store the generated status blurb,
+        //and create a table to show status information.
+        $table = $this->generate_results_table();
+
+        //Notify the user of their grading status.
+        $table->data[] = $this->generate_status_row($response);
+
+        //If a compilation error occurred, report the compiler output.
+        if($response['_status'] == online_judge::STATUS_COMPILATION_ERROR) {
+            $table->data[] = $this->generate_compilation_error_row($response); 
+        }
+
+        if($response['_status'] == online_judge::STATUS_ACCEPTED) {
+            $table->data[] = $this->generate_comment_row($qa, $response);
+        }
+
+        return html_writer::table($table); 
+
+    }
+
+
+    protected function generate_comment_row($qa, $response) {
+
+        //Determine the maximum mark possible for the given question,
+        //and extract each of the remarks that compose the grade.
+        $max_mark = $qa->get_max_mark();
+        $comments = $qa->get_question()->get_testbench_remarks($response);
+
+        //Display each of the relevant comments.
+        $item_name = get_string('comments', 'qtype_onlinejudge').':';
+        $item  = html_writer::tag('div', get_string('grading_details', 'qtype_onlinejudge'));
+        $item .= $this->summarize_comments($comments, $max_mark);
+        return array($item_name, $item);
+    }
+
+    /**
+     * Summarizes the comments for a given test-case in an easy-to-read table.
+     */
+    function summarize_comments($comments, $max_grade) {
+    
+      //And generate a new table containing each of the comments and demerits
+      //generated by the unit tests.
+      $table = new html_table();
+      $table->attributes['class'] = 'codefeedback';
+      $table->align = array('center', 'left');
+      $table->width = '100%';
+      $table->size = array('4em', '');
+
+      //Display each of the grading comments for the given row.
+      foreach($comments as $comment) {
+
+        //If points have been added/subtracted for this, render a number of poitns...
+        if($comment[0] != 0)  {
+          $comment[0] = ($comment[0] / 100.0) * $max_grade; 
+        } 
+        //Otherwise, leave this field blank.
+        else {
+          $comment[0] = '';
+        }
+
+        //Add the testbench comment to the table.
+        $table->data[] = $comment;
+
+      }
+
+      //Convert the comments into a HTML table.
+      return html_writer::table($table);
+    
+    }
+
+
+
+    protected function generate_compilation_error_row($response) {
+        $item_name = get_string('compiler_output', 'qtype_onlinejudge');
+        $item = html_writer::tag('pre', $response['_compileroutput']);
+        return array($item_name, $item);
+    }
+
+    protected function generate_status_row($response) {
+
+        //If an error occurred, display the status in red.
+        $result_class = ($response['_status'] == online_judge::STATUS_ACCEPTED) ? '' : 'notifyproblem';
+
+        //TODO: String.
+        //Report the raw status of the grading.
+        $item_name = get_string('result', 'qtype_onlinejudge').$this->help_icon('status', 'assignment_onlinejudge').':';
+        $item = html_writer::tag('span', get_string('status'.$response['_status'], 'local_onlinejudge'), array('class' => $result_class));
+
+        //And return it as a table row.
+        return array($item_name, $item);
+    
+    }
+
+    protected function queued_grade_status($task_id) {
+
+        //Start a buffer to store the generated status blurb,
+        //and create a table to show status information.
+        $result = $this->spacer();
+        $table = $this->generate_results_table();
+
+        //Get the task's information.
+        $task = online_judge::get_task_record($task_id);
+
+
+        //If the task has not yet been judged, display information about the wait.
+        if($task->status == online_judge::STATUS_PENDING) {
+
+            //Notify the user that their grade is pending...
+            $item_name = get_string('status', 'qtype_onlinejudge').$this->help_icon('status_pending', 'qtype_onlinejudge').':';
+            $item = get_string('in_line', 'qtype_onlinejudge');
+            $table->data[] = array($item_name, $item);
+
+            //Generate information relating to the wait.
+            $wait_info = new stdClass;
+            $wait_info->length = online_judge::position_in_queue($task_id);
+
+            //TODO: Use question's maximum CPU time?
+            $wait_info->estimated_time = $wait_info->length * 10;
+            $table->data[] = array(get_string('estimated_wait', 'qtype_onlinejudge'), get_string('estimated_wait_message', 'qtype_onlinejudge', $wait_info)); 
+
+        } else {
+
+            //Notify the user that their submission is being graded.
+            $item_name = get_string('status', 'qtype_onlinejudge').$this->help_icon('status_grading', 'qtype_onlinejudge').':';
+            $item = get_string('grading', 'qtype_onlinejudge');
+            $table->data[] = array($item_name, $item);
+
+            //And provide additional instructions.
+            $table->data[] = array(get_string('details', 'qtype_onlinejudge'), get_string('grading_in_progress', 'qtype_onlinejudge'));
+        }
+
+        return $result.html_writer::table($table);
+
+    }
+
+    /**
+     * Generates a new HTML table formatted to display compilation results.
+     */
+    private function generate_results_table($id = 'coderesults') {
+        $table = new html_table();
+        $table->id = $id;
+        $table->attributes['class'] = 'generaltable';
+        $table->align = array ('right', 'left');
+        $table->size = array('20%', '');
+        $table->width = '100%';
+        return $table;
+    }
+
+
+
 
     /**
      * Displays any attached files when the question is in read-only mode.

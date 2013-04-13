@@ -2,7 +2,7 @@
 /**
  * Defines the editing form for the shortanswer question type.
  *
- * @package   qtype_vhdl
+ * @package   qtype_onlinejudge
  * @copyright 2011 Binghamton University
  * @author 	  Kyle Temkin <ktemkin@binghamton.edu>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -12,7 +12,6 @@ if(!defined('MOODLE_INTERNAL'))
 	die();
 	
 require_once($CFG->libdir.'/form/filemanager.php');
-require_once("$CFG->dirroot/question/type/vhdl/RemoteHDLSimulation.class.php");
 
 /////////////////
 /// HDL Sim.  ///
@@ -23,57 +22,51 @@ require_once("$CFG->dirroot/question/type/vhdl/RemoteHDLSimulation.class.php");
  * @package questionbank
  * @subpackage questiontypes
  */
-class qtype_vhdl extends question_type 
+class qtype_onlinejudge extends question_type 
 {
 
 	/**
 	 * Short name for the question type.
 	 */
-    function name() 
-    {
-        return 'vhdl';
+    function name() {
+        return 'onlinejudge';
     }
     
     /**
      * Specifies the database table and columns used to store the question options.
      */
-	function extra_question_fields() 
-    {
-    	return array('question_vhdl', 'hdltype', 'allowmulti', 'testbench', 'autofeedback');
+	function extra_question_fields() {
+    	return array('question_onlinejudge', 'judge', 'allowmulti', 'testbench', 'autofeedback');
     }
     
     /**
      * The name of the 'id' row in the custom database table.
      */
-	function questionid_column_name() 
-	{	
+   	function questionid_column_name() {	
 		return 'question';
     }
 
     /**
      * Indicates which "file areas" this question uses for its user responsese.
      */
-    public function response_file_areas() 
-    {
+    public function response_file_areas() {
         //indicate that this question only expects files in its answers
         return array('answer');
     }
 
     public function get_question_options($question) {
         global $DB;
-        $question->options = $DB->get_record('question_vhdl', array('question' => $question->id), '*', MUST_EXIST);
+        $question->options = $DB->get_record('question_onlinejudge', array('question' => $question->id), '*', MUST_EXIST);
         parent::get_question_options($question);
     }
 
     public function save_question_options($formdata) 
     {
         $draftitemid = file_get_submitted_draft_itemid('testbench');
-        file_save_draft_area_files($formdata->testbench, $formdata->context->id, 'qtype_vhdl', 'testbench', $draftitemid, $this->fileoptions);
+        file_save_draft_area_files($formdata->testbench, $formdata->context->id, 'qtype_onlinejudge', 'testbench', $draftitemid, $this->fileoptions);
         $this->save_hints($formdata);
         parent::save_question_options($formdata);
     }
-
- 
 
     
     /**
@@ -82,99 +75,12 @@ class qtype_vhdl extends question_type
     function delete_question($questionid, $contextid) 
     {
         global $DB;
-        $DB->delete_records('question_vhdl', array('question' => $questionid));
+        $DB->delete_records('question_onlinejudge', array('question' => $questionid));
 
         //TODO: Consider deleting the submitted testbench along with the file.
         
         parent::delete_question($questionid, $contextid);
     }
-
-    /**
-     * Determines if the user's response remains unchanged since they hit submit the last time.
-     */
-    function compare_responses($question, $state, $teststate) 
-    {
-    	//always consider an update upon submissions (multiple submissions are handled in CSRF/security in the
-    	//grading system)
-    	
-    	//this is (unfortunately) necessary due to the way moodle consider files
-    	return false;
-    }
-
-    /**
-     * Returns a sample response for the instructor's convenience.
-     * Not implemented, as this would take a huge amount of reverse engineering the test-bench.
-     */
-    function get_correct_responses(&$question, &$state) 
-    {
-        return null;
-    }
-
-    /**
-     * Prints the main content of the question, as displayed to the user.
-     */
-    function print_question_formulation_and_controls(&$question, &$state, $cmoptions, $options) 
-    {
-        global $CFG;
-        
-        //configure the options for the file chooser according to the script
-        $maxfiles = $question->options->allowmulti ? 25 : 1;
-        
-        //only allow the correct file type to be uploaded
-        //(the rest will be handled by the backend PHP script, which
-        //uses file extension to run the proper parsing)
-        switch($question->options->hdltype)
-        {
-        	case 'any':
-        		$types_allowed = array('*.vhd', '*.v', '*.sch');
-        		break;
-        	case 'sch':
-        		$types_allowed = array('*.sch', '*.sym');
-        		break;
-        	case 'vhdl':
-        		$types_allowed = array('*.vhd');
-        		break;
-        	case 'verilog':
-        		$types_allowed = array('*.v');
-        		break;
-        	case 'true':
-        		$types_allowed = array('*.vhd', '*.v');
-        		break;
-		case 'fsm':
-			$types_allowed = array('*.fsm');
-			break;
-        	
-        }
-        
-        //create the moodle upload handler, borrowing the file manager from Moodle's quickform library
-        $upload_handler = new MoodleQuickForm_filemanager($question->name_prefix, get_string('userdesign', 'qtype_vhdl'), null, array('maxfiles' => $maxfiles, 'subdirs' => false, 'accepted_types' => $types_allowed));
-
-        
-        //if the user has provided a design, populate the upload handler
-        if(isset($state->responses['']))
-        	$upload_handler->setValue($state->responses['']);
-        	
-        //create the actual HTML form, which will be included in display.html
-        $fileupload = @$upload_handler->toHtml();
-
-        //below is unmodified moodle core code (ugh)
-        $context = $this->get_context_by_category_id($question->category);
-
-        $readonly = $options->readonly ? ' disabled="disabled"' : '';
-
-        $formatoptions = new stdClass;
-        $formatoptions->noclean = true;
-        $formatoptions->para = false;
-
-        // Print question formulation
-        $questiontext = format_text($question->questiontext,
-                         $question->questiontextformat,
-                         $formatoptions, $cmoptions->course);
-
-                         
-        include("$CFG->dirroot/question/type/vhdl/display.html");
-    }
-    
 
     /**
      * 
@@ -267,13 +173,13 @@ class qtype_vhdl extends question_type
     public function move_files($questionid, $oldcontextid, $newcontextid) {
         parent::move_files($questionid, $oldcontextid, $newcontextid);
         $fs = get_file_storage();
-        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, 'qtype_vhdl', 'testbench', $questionid);
+        $fs->move_area_files_to_new_context($oldcontextid, $newcontextid, 'qtype_onlinejudge', 'testbench', $questionid);
     }
 
     protected function delete_files($questionid, $contextid) {
         parent::delete_files($questionid, $contextid);
         $fs = get_file_storage();
-        $fs->delete_area_files($contextid, 'qtype_vhdl', 'testbench', $questionid);
+        $fs->delete_area_files($contextid, 'qtype_onlinejudge', 'testbench', $questionid);
     }
 
 
