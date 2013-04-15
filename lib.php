@@ -14,6 +14,10 @@ require_once($CFG->dirroot.'/question/engine/bank.php');
 require_once($CFG->dirroot.'/question/engine/questionusage.php');
 require_once($CFG->dirroot.'/question/engine/questionattempt.php');
 
+//TODO: When Moodle eventually supports this, genericize this away.
+require_once($CFG->dirroot.'/mod/quiz/attemptlib.php');
+require_once($CFG->dirroot.'/mod/quiz/accessmanager.php');
+
 /**
  * Serve question type files
  *
@@ -31,7 +35,13 @@ function qtype_onlinejudge_pluginfile($course, $cm, $context, $filearea, $args, 
 }
 
 
-
+/**
+ * Event handler which is triggered then the judging of an Online Judge program 
+ * is complete. Used to handle the grading of questions whose grading occurs after
+ * a quiz is closed (say, past the deadline.)
+ *
+ * @param object $task Information describing the task which was just completed.
+ */
 function onlinejudge_task_judged($task) {
     global $DB;
 
@@ -42,17 +52,26 @@ function onlinejudge_task_judged($task) {
 
     //Get the relevant question_attempt object..
     $quba = question_engine::load_questions_usage_by_activity($task->instanceid);
-    $attempt = $quba->get_question_attempt($task->slot);
+    $qa = $quba->get_question_attempt($task->slot);
 
-    //TODO: return unless the question is _finished_
-    return;
-
-    $data = array_merge(array('-update' => true, 'attemptid' => $attempt->get_id()), (array)$task);
+    //Only run this if the quiz is finished (and thus we're the only one capable
+    //of modifying the attempt. We don't want to modify this if the user can still
+    //move through the quiz, as we'll wind up in an inconsistent state.)
+    if (!$qa->get_state()->is_finished()) {
+        return;
+    }
 
     //Update the question attempt in the relevant quiz.
-    $attempt->process_action($data);
-    
+    $qa->process_action(array('-update' => 1), null, $task->userid);
+   
     //And save the modified QUBA.
     question_engine::save_questions_usage_by_activity($quba);
+
+    //If this QUBA is being used by a quiz attempt, update the quiz's grade.
+    //TODO: Update the Moodle core so this doesn't require a special case?
+    if($quba->get_owning_component() == 'mod_quiz') {
+        $quiz_attempt = quiz_attempt::create_from_usage_id($quba->get_id()); 
+        $quiz_attempt->process_finish(time(), null);
+    }
 
 }

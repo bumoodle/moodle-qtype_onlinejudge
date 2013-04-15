@@ -19,7 +19,7 @@ $string['pluginname_summary'] = 'An advanced HDL question, which automatically g
 $string['pluginnamesummary'] = 'An advanced coding question, which automatically grades student designs.';
 
 $string['estimated_wait'] = 'Estimated wait:';
-$string['estimated_wait_message'] = 'There are {$a->length} programs waiting to be graded; your program should be graded in less than <b>{$a->estimated_time}</b> seconds.';
+$string['estimated_wait_message'] = 'There are {$a->length} program(s) waiting to be graded ahead of this one; your program should be graded in less than <b>{$a->estimated_time}</b> seconds.';
 
 $string['result'] = 'Result';
 $string['status'] = 'Status';
@@ -29,24 +29,26 @@ $string['status_grading_help'] = 'Questions which require you to submit code tak
 $string['in_line'] = 'Waiting in line to be graded...';
 
 $string['grading'] = 'Your submission is being graded.';
-$string['grading_in_progress'] = 'The system is currently grading your submission in the background; grading should be completed momentarily. <i>You can click Refresh to view an updated status.</i>';
+$string['grading_in_progress'] = 'The system is currently grading your submission in the background; grading should be completed momentarily. <br /><i>You can click Refresh to view an updated status.</i>';
 
 $string['details'] = 'Details';
 $string['compiler_output'] = 'Compiler output:';
 $string['comments'] = 'Comments';
 $string['grading_details'] = 'Grading details:';
 
-$string['inputoptions'] = 'User HDL Input';
+$string['submitted_files'] = 'Submitted';
+
+$string['filesspecified'] = '{$a} files';
+
+$string['inputoptions'] = 'User Input Options';
 $string['allowmultifiles'] = 'Allow the user to submit multiple files, for a multi-level design.';
 $string['allowzipfiles'] = 'Allow the user to submit one or more ZIP archives, which will be automatically unzipped.';
 
 $string['language'] = 'Language';
-$string['anytype'] = 'Accept any valid HDL.';
-$string['anytruehdl'] = 'Accept VHDL or Verilog, but not Schematic files.';
-$string['vhdlonly'] = 'Accept only VHDL.';
-$string['verilogonly'] = 'Accept only Verilog.';
-$string['schonly'] = 'Accept only Xilinx Schematic files.';
-$string['fsmonly'] = 'Accept only QFSM Finite State Machine descriptions.';
+$string['memlimit'] = 'Maximum Memory Usage';
+$string['cpulimit'] = 'Maximum CPU Time';
+
+
 
 $string['gradingbench'] = 'Grading Testbench';
 $string['gradingbenchfiles'] = 'Testbench File(s)';

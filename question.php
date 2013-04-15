@@ -76,17 +76,22 @@ class qtype_onlinejudge_question extends question_graded_automatically
      * @param int $slot The slot that identifies the given question.
      * @return int A unique ID identifing the task in the relevant work queue.
      */ 
-    public function queue_grading(array $response, $quba_id, $slot) {
+    public function queue_grading(array $response, $quba_id, $slot, $user_id = null) {
+
+        global $USER;
 
         //Extract each of the files for grading...
         $files = $this->get_files_for_grading($response);
-        $userid  = reset($files)->get_userid();
+        $user_id  = $user_id ?: $USER->id;
 
-        //TODO: Set up options here.
+        //Set up the options for the task to be graded.
         $options = new stdClass;
+        $options->cpulimit = $this->cpulimit;
+        $options->memlimit = $this->memlimit;
+        $options->input = '';
 
         //Submit the code for evaluation.
-        return onlinejudge_submit_task($quba_id, $userid, $this->judge, $files, 'qtype_onlinejudge', $options, $slot);
+        return onlinejudge_submit_task($quba_id, $user_id, $this->judge, $files, 'qtype_onlinejudge', $options, $slot);
     }
 
     /**
@@ -126,25 +131,17 @@ class qtype_onlinejudge_question extends question_graded_automatically
     /**
      * @return bool True iff the given response should be queued for grading.
      */
-    public function is_complete_response(array $response)
-    {
+    public function is_complete_response(array $response, $attempt_id = null) {
         //if the response does not specify any files, it must be incomplete
-        //if(!$this->files_specified($response))
-        //  return false;
-
-        //TODO
-
-        return true;
+        return $this->files_specified($response, $attempt_id);
     }
 
     /**
      * Returns true iff the given response is gradeable.
-     * TODO: Rename, as not to appear to implement the standard API.
      */
-    public function is_gradable_response(array $response)
-    {
+    public function is_gradable_response(array $response, $attempt_id = null) {
         //any complete response is gradeable
-        return $this->is_complete_response($response);
+        return $this->is_complete_response($response, $attempt_id);
     }
 
     /**
@@ -175,7 +172,7 @@ class qtype_onlinejudge_question extends question_graded_automatically
     /**
      * Determines the amount of files specified by the given response.
      */ 
-    protected function files_specified(array $response)
+    protected function files_specified(array $response, $attempt_id)
     {
         global $USER;
 
@@ -186,7 +183,11 @@ class qtype_onlinejudge_question extends question_graded_automatically
         $file_storage = get_file_storage();
 
         //attempt to get the uploaded file, if possible
-        $user_design = $file_storage->get_area_files($this->contextid, 'question', 'response_answer', $response['attemptid'], 'sortorder', false);
+        if($attempt_id !== null) {
+            $user_design = $file_storage->get_area_files($this->contextid, 'question', 'response_answer', $attempt_id, 'sortorder', false);
+        } else {
+            $user_design = array();
+        }
 
         //If we can't find the files associated with the attempt, check the user's draft area.
         if(!count($user_design) && !empty($response['answerraw'])) {
@@ -204,13 +205,30 @@ class qtype_onlinejudge_question extends question_graded_automatically
      * @return array An array of stored_file objects containing each file uploaded by
      *     the user.
      */ 
-    protected function get_files_from_response(array $response) {
+    protected function get_files_from_response(array $response, $attempt_id = null) {
         global $USER;
 
         //If the user didn't submit any files, return.
         //TODO: Perhaps this doesn't need to be here-- e.g. for regrading?
         if(!array_key_exists('answerraw', $response)) {
             return;
+        }
+
+        //If no attempt_id was provided, attempt to get the attempt ID from the 
+        if($attempt_id == null) {
+
+            //If the response knows the attempt ID, use that.
+            if(array_key_exists('attemptid', $response)) {
+                $attempt_id = $response['attemptid'];
+            }
+            //TODO: Remove this failsafe?
+            else if(array_key_exists('_attemptid', $response)) {
+                $attempt_id = $response['_attemptid'];
+            }
+            //Otherwise, return an empty array, as we were not able to fetch the requested files.
+            else {
+                return array();  
+            }
         }
 
         //first, get a reference to Moodle's file storage controller
@@ -220,14 +238,14 @@ class qtype_onlinejudge_question extends question_graded_automatically
         $user_context = context_user::instance($USER->id);
 
         //attempt to get the uploaded file, if possible
-        $user_design = $file_storage->get_area_files($this->contextid, 'question', 'response_answer', $response['attemptid'], 'sortorder', false);
+        $user_design = $file_storage->get_area_files($this->contextid, 'question', 'response_answer', $attempt_id, 'sortorder', false);
 
         //if this fails, retrieve the local copy from the draft area
         if(!count($user_design)) {
             $user_design = $file_storage->get_area_files($user_context->id, 'user', 'draft', $response['answerraw']);
         }
 
-        return $user_design;
+        return $user_design ?: array();
     }
 
     /**
@@ -236,13 +254,13 @@ class qtype_onlinejudge_question extends question_graded_automatically
      * @return array An array of stored_file objects containing each file uploaded by
      *     the user.
      */ 
-    protected function get_files_for_grading(array $response) {
+    protected function get_files_for_grading(array $response, $attempt_id = null) {
 
         //first, get a reference to Moodle's file storage controller
         $file_storage = get_file_storage();
 
         //Get the user's design.
-        $user_design = $this->get_files_from_response($response);
+        $user_design = $this->get_files_from_response($response, $attempt_id);
 
         //And get all of the stored files included in the testbench.
         $testbench = $file_storage->get_area_files($this->contextid, 'qtype_onlinejudge', 'testbench', $this->testbench);
@@ -266,9 +284,8 @@ class qtype_onlinejudge_question extends question_graded_automatically
      */
     public function parse_testbench_output($response) {
 
-        //A test-case that fails no assertions should be
-        //silent; and thus have the maximum possible grade.
-        $grade = 100;
+        //Assume a zero grade until the 
+        $grade = 0;
 
         //Create an array to store each of the relevant instructor comments.
         $remarks = [];
@@ -287,7 +304,14 @@ class qtype_onlinejudge_question extends question_graded_automatically
 
             //Break the grade into its components.
             $remark = explode('|', $mark);
-            $remarks[] = $remark;
+
+            //If a comment was provided, add the grade to the table.
+            //Otherwise, do not display this. This is mostly useful for
+            //adding a fixed 100 points at the end of the testbench if the
+            //instructor wants to grade "subtractively".
+            if(!empty($remark[1])) {
+                $remarks[] = $remark;
+            }
 
             //Add the mark to the assignment's grade.
             $grade += intval($remark[0]);
@@ -308,40 +332,49 @@ class qtype_onlinejudge_question extends question_graded_automatically
         return $remarks;
     }
 
-    /**
-     * Converts from the database shorthand for a language to an array of valid file extensions
-     * for that language (as determined by ISIM). 
-     */
-    private static function elaborate_types($types)
-    {
-    	switch($types)
-    	{
-        case 'fsm':
-            return array('fsm');
-            case 'sch':
-            return array('sch', 'sym');
-            case 'vhdl':
-            return array('vhd', 'vhdl');
-          case 'verilog':
-            return array('v');
-          case 'true':
-            return array('vhd', 'vhdl', 'v');
-          case 'all':
-          default:
-            return array('sch', 'vhd', 'vhdl', 'v');	
-    	
-    	}
-    } 
-
 
     /**
      * Returns true iff $a and $b both refer to the same response.
      * This is used to prevent duplicate submissions from being graded. 
      */
-    public function is_same_response(array $a, array $b)
+    public function is_same_response(array $a, array $b, $attempt_id = null)
     {
-      //FIXME FIXME FIXME 
-      return false;
+        //Extract all of the stored files from the response.
+        $files_a = $this->get_files_from_response($a, $attempt_id) ?: array();
+        $files_b = $this->get_files_from_response($b, $attempt_id) ?: array();
+
+        //Return true iff the two filesets have the same files.
+        return $this->get_hashes_for_fileset($files_a) == $this->get_hashes_for_fileset($files_b);
+    }
+
+    /**
+     * Gets a sorted array that contains a sha1 hash for each file in the given array.
+     * Used to generate a unique identifier for a fileset.
+     *
+     * @param array $files A set of stored files and/or strings containing file content.
+     * @return array An array of sha1 hashes, as sorted by php's sort.
+     */
+    protected function get_hashes_for_fileset($files) {
+
+        $hashes = array();
+
+        //Hash each of the files individually.
+        foreach($files as $file) {
+
+            //If we have a storedfile, get its SHA1 contenthash.
+            if($file instanceof stored_file) {
+                $hashes[] = $file->get_contenthash();
+            }
+            //Otherwise, compute the sha1 of its contents.
+            else {
+                $hashes[] = sha1($file); 
+            }
+
+        }
+
+        sort($hashes);
+        return $hashes;
+
     }
 
 
@@ -350,8 +383,7 @@ class qtype_onlinejudge_question extends question_graded_automatically
      */
     public function summarise_response(array $response)
     {
-        //TODO: fixme
-        return 'waveform';
+        return 'code';
     }
 
      /**
@@ -360,9 +392,7 @@ class qtype_onlinejudge_question extends question_graded_automatically
      */
     public function get_validation_error(array $response)
     {
-        //FIXME: todo
         return null;
-
     }
 
     public function check_file_access($qa, $options, $component, $filearea, $args, $forcedownload) 
@@ -416,8 +446,4 @@ class qtype_onlinejudge_question extends question_graded_automatically
         //Return the final grade.
         return array($grade, $remarks);;
     }
-
-
-
-
 }

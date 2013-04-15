@@ -36,7 +36,7 @@ class qtype_onlinejudge extends question_type
      * Specifies the database table and columns used to store the question options.
      */
 	function extra_question_fields() {
-    	return array('question_onlinejudge', 'judge', 'allowmulti', 'testbench', 'autofeedback');
+    return array('question_onlinejudge', 'judge', 'allowmulti', 'testbench', 'autofeedback', 'memlimit', 'cpulimit');
     }
     
     /**
@@ -80,77 +80,6 @@ class qtype_onlinejudge extends question_type
         //TODO: Consider deleting the submitted testbench along with the file.
         
         parent::delete_question($questionid, $contextid);
-    }
-
-    /**
-     * 
-     * Grades a given response using the ISIM simulator.
-     * @param $question 	The question information, including instructor configuration.
-     * @param $state 		The student's response to the question.
-     */
-    function grade_responses(&$question, &$state, $cmoptions) 
-    {
-    	
-    	//run the simulation (which might take a while; hopefully won't be noticible with the page load latency)
-    	try
-    	{
-			//create a new HDL Simulation object
-    		$sim = new HDLSimulation($question->options->testbench, $state->responses[''], self::elaborate_types($question->options->hdltype));
-		
-    	
-    		//start sending to the user as we run the simulation	
-	    	flush();
-	    	$sim->run_simulation();
-	    	$sim->cleanup();
-	    	
-			//get the grade and comments from the reference testbench    	
-	    	$state->raw_grade = $sim->get_grade() * $question->maxgrade;
-	
-	    	//if the automatic feedback option is enabled, provide feedback
-	    	if($question->options->autofeedback)
-				$state->manualcomment = $sim->get_marks_str($question->maxgrade);
-	
-    	}
-    	//if a SimulationException occurred (almost always due to user error, though server load might play a factor)
-    	catch(SimulationException $e)
-    	{
-    		//display the error message provided by the SimulationException (user-safe; reveals no technical detail about the server)
-			$state->manualcomment = $e->getMessage();
-			
-			//do not award any points for this reponse 
-	    	$state->raw_grade = 0;
-	    	
-	    	//but do no assess any penalty 
-	    	
-	    	//mark the state as graded, so the user can see the result
-	        $state->event = ($state->event ==  QUESTION_EVENTCLOSE) ? QUESTION_EVENTCLOSEANDGRADE : QUESTION_EVENTGRADE;
-	        	
-	        return true;
-    	}
-    	
-    	catch(RemoteException $e)
-    	{
-			$state->manualcomment = get_string('remote_issue');    
-			
-			//do not award any points for this reponse 
-	    	$state->raw_grade = 0;
-	    	
-	    	//but do no assess any penalty 
-	    	
-	    	//mark the state as graded, so the user can see the result
-	        $state->event = ($state->event ==  QUESTION_EVENTCLOSE) ? QUESTION_EVENTCLOSEANDGRADE : QUESTION_EVENTGRADE;
-	        	
-	        return true;
-    	}
-    	
-    	
-      	// Update the penalty.
-        $state->penalty = $question->penalty * $question->maxgrade;
-
-        // mark the state as graded
-        $state->event = ($state->event ==  QUESTION_EVENTCLOSE) ? QUESTION_EVENTCLOSEANDGRADE : QUESTION_EVENTGRADE;
-
-        return true;
     }
 
     /**

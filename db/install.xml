@@ -1,14 +1,16 @@
-<XMLDB xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" PATH="question/type/vhdl/db" VERSION="20120606" COMMENT="XMLDB file for Moodle question/type/vhdl" xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd">
+<XMLDB xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" PATH="question/type/onlinejudge/db" VERSION="20130415" COMMENT="XMLDB file for Moodle question/type/onlinejudge" xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd">
 <TABLES>
-<TABLE NAME="question_onlinejudge" COMMENT="Options for VHDL questions">
+<TABLE NAME="question_onlinejudge" COMMENT="Options for onlinejudge questions">
 <FIELDS>
-<FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="question"/>
-<FIELD NAME="question" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id." PREVIOUS="id" NEXT="judge"/>
-<FIELD NAME="judge" TYPE="text" LENGTH="small" NOTNULL="false" SEQUENCE="false" COMMENT="Accepted HDL response types." PREVIOUS="question" NEXT="allowmulti"/>
-<FIELD NAME="allowmulti" TYPE="int" LENGTH="1" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="Allows multiple files in a user response" PREVIOUS="judge" NEXT="allowzip"/>
-<FIELD NAME="allowzip" TYPE="int" LENGTH="1" NOTNULL="false" UNSIGNED="false" SEQUENCE="false" COMMENT="Allow the students to submit zip files." PREVIOUS="allowmulti" NEXT="testbench"/>
-<FIELD NAME="testbench" TYPE="text" LENGTH="medium" NOTNULL="false" SEQUENCE="false" COMMENT="Filename for the grading testbench." PREVIOUS="allowzip" NEXT="autofeedback"/>
-<FIELD NAME="autofeedback" TYPE="int" LENGTH="1" NOTNULL="false" UNSIGNED="false" SEQUENCE="false" COMMENT="Allows the testbench to specify user feedback as well as grading." PREVIOUS="testbench"/>
+<FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" NEXT="question"/>
+<FIELD NAME="question" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id." PREVIOUS="id" NEXT="judge"/>
+<FIELD NAME="judge" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Accepted HDL response types." PREVIOUS="question" NEXT="allowmulti"/>
+<FIELD NAME="allowmulti" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Allows multiple files in a user response" PREVIOUS="judge" NEXT="allowzip"/>
+<FIELD NAME="allowzip" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Allow the students to submit zip files." PREVIOUS="allowmulti" NEXT="testbench"/>
+<FIELD NAME="testbench" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Filename for the grading testbench." PREVIOUS="allowzip" NEXT="autofeedback"/>
+<FIELD NAME="autofeedback" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Allows the testbench to specify user feedback as well as grading." PREVIOUS="testbench" NEXT="memlimit"/>
+<FIELD NAME="memlimit" TYPE="int" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="Memory limit, in bytes" PREVIOUS="autofeedback" NEXT="cpulimit"/>
+<FIELD NAME="cpulimit" TYPE="int" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="CPU time" PREVIOUS="memlimit"/>
 </FIELDS>
 <KEYS>
 <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="question"/>

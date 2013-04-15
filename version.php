@@ -9,7 +9,7 @@
  */
 
 $plugin->component = 'qtype_onlinejudge';
-$plugin->version  = 2013040901;
+$plugin->version  = 2013041500;
 $plugin->requires = 2010090501;
 
 
