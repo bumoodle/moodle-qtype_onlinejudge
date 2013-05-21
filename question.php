@@ -288,7 +288,7 @@ class qtype_onlinejudge_question extends question_graded_automatically
         $grade = 0;
 
         //Create an array to store each of the relevant instructor comments.
-        $remarks = [];
+        $remarks = array();
 
         //Parse the test-case output.
         $marks = explode("\n", $response['_output']);
@@ -421,7 +421,7 @@ class qtype_onlinejudge_question extends question_graded_automatically
         $grade = $max_grade;
 
         //Create an array to store each of the relevant instructor comments.
-        $remarks = [];
+        $remarks = array();
 
         //Parse the test-case output.
         $marks = explode("\n", $task->output);
